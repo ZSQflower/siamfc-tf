@@ -44,41 +44,57 @@ def main():
                 frame_name_list_ = frame_name_list[start_frame:]
                 pos_x, pos_y, target_w, target_h = region_to_bbox(gt_[0])
                 idx = i * evaluation.n_subseq + j
+				# Call Tracker for the selected sequence
+                print ("Tracking started!")
                 bboxes, speed[idx] = tracker(hp, run, design, frame_name_list_, pos_x, pos_y,
                                                                      target_w, target_h, final_score_sz, filename,
                                                                      image, templates_z, scores, start_frame)
                 lengths[idx], precisions[idx], precisions_auc[idx], ious[idx] = _compile_results(gt_, bboxes, evaluation.dist_threshold)
-                print str(i) + ' -- ' + videos_list[i] + \
+                print( str(i) + ' -- ' + videos_list[i] + \
                 ' -- Precision: ' + "%.2f" % precisions[idx] + \
                 ' -- Precisions AUC: ' + "%.2f" % precisions_auc[idx] + \
                 ' -- IOU: ' + "%.2f" % ious[idx] + \
-                ' -- Speed: ' + "%.2f" % speed[idx] + ' --'
-                print
+                ' -- Speed: ' + "%.2f" % speed[idx] + ' --' )
 
         tot_frames = np.sum(lengths)
         mean_precision = np.sum(precisions * lengths) / tot_frames
         mean_precision_auc = np.sum(precisions_auc * lengths) / tot_frames
         mean_iou = np.sum(ious * lengths) / tot_frames
         mean_speed = np.sum(speed * lengths) / tot_frames
-        print '-- Overall stats (averaged per frame) on ' + str(nv) + ' videos (' + str(tot_frames) + ' frames) --'
-        print ' -- Precision ' + "(%d px)" % evaluation.dist_threshold + ': ' + "%.2f" % mean_precision +\
+        print( '-- Overall stats (averaged per frame) on ' + str(nv) + ' videos (' + str(tot_frames) + ' frames) --' )
+        print( ' -- Precision ' + "(%d px)" % evaluation.dist_threshold + ': ' + "%.2f" % mean_precision +\
               ' -- Precisions AUC: ' + "%.2f" % mean_precision_auc +\
               ' -- IOU: ' + "%.2f" % mean_iou +\
-              ' -- Speed: ' + "%.2f" % mean_speed + ' --'
-        print
+              ' -- Speed: ' + "%.2f" % mean_speed + ' --' )
 
     else:
-        gt, frame_name_list, _, _ = _init_video(env, evaluation, evaluation.video)
-        pos_x, pos_y, target_w, target_h = region_to_bbox(gt[evaluation.start_frame])
-        bboxes, speed = tracker(hp, run, design, frame_name_list, pos_x, pos_y, target_w, target_h, final_score_sz,
+        gt, frame_name_list, _, n_frames = _init_video(env, evaluation, evaluation.video)
+        #pos_x, pos_y, target_w, target_h = region_to_bbox(gt[evaluation.start_frame])
+        
+        # np.size(frame_name_list) = Amount of frames
+        # ott = amount of Objects To Track
+        ott = len(gt) if evaluation.multi_object else 1
+        objects = np.zeros( (ott,4) )
+        for i in range(ott):
+            objects[i,:] = region_to_bbox(gt[i])
+        
+        # Call Tracker for the selected sequence.
+        print ("Tracking started!")
+        bboxes, speed = tracker(hp, run, design, frame_name_list, objects, final_score_sz,
                                 filename, image, templates_z, scores, evaluation.start_frame)
-        _, precision, precision_auc, iou = _compile_results(gt, bboxes, evaluation.dist_threshold)
-        print evaluation.video + \
-              ' -- Precision ' + "(%d px)" % evaluation.dist_threshold + ': ' + "%.2f" % precision +\
-              ' -- Precision AUC: ' + "%.2f" % precision_auc + \
-              ' -- IOU: ' + "%.2f" % iou + \
-              ' -- Speed: ' + "%.2f" % speed + ' --'
-        print
+
+        if evaluation.multi_object:
+            print('No Ground Truth available for multi object, just printing speed result....\n' + \
+                  evaluation.video + \
+                  ' -- Speed: ' + "%.2f" % speed + ' --' )
+        else:
+            _, precision, precision_auc, iou = _compile_results(gt, bboxes, evaluation.dist_threshold)
+            print( evaluation.video + \
+                  ' -- Precision ' + "(%d px)" % evaluation.dist_threshold + ': ' + "%.2f" % precision +\
+                  ' -- Precision AUC: ' + "%.2f" % precision_auc + \
+                  ' -- IOU: ' + "%.2f" % iou + \
+                  ' -- Speed: ' + "%.2f" % speed + ' --' )
+    print ("Tracking finished!")
 
 
 def _compile_results(gt, bboxes, dist_threshold):
@@ -91,8 +107,8 @@ def _compile_results(gt, bboxes, dist_threshold):
 
     for i in range(l):
         gt4[i, :] = region_to_bbox(gt[i, :], center=False)
-        new_distances[i] = _compute_distance(bboxes[i, :], gt4[i, :])
-        new_ious[i] = _compute_iou(bboxes[i, :], gt4[i, :])
+        new_distances[i] = _compute_distance(bboxes[i][0, :], gt4[i, :])
+        new_ious[i] = _compute_iou(bboxes[i][0, :], gt4[i, :])
 
     # what's the percentage of frame in which center displacement is inferior to given threshold? (OTB metric)
     precision = sum(new_distances < dist_threshold)/np.size(new_distances) * 100
@@ -124,10 +140,10 @@ def _init_video(env, evaluation, video):
         frame_sz[1], frame_sz[0] = frame_sz[0], frame_sz[1]
 
     # read the initialization from ground truth
-    gt_file = os.path.join(video_folder, 'groundtruth.txt')
+    gt_file = os.path.join(video_folder, 'groundtruth.txt') if evaluation.multi_object else os.path.join(video_folder, 'groundtruth-SAVE.txt')
+    
     gt = np.genfromtxt(gt_file, delimiter=',')
     n_frames = len(frame_name_list)
-    assert n_frames == len(gt), 'Number of frames and number of GT lines should be equal.'
 
     return gt, frame_name_list, frame_sz, n_frames
 

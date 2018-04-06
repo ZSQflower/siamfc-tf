@@ -1,21 +1,22 @@
-# SiamFC - TensorFlow
-TensorFlow port of the tracking method described in the paper [*Fully-Convolutional Siamese nets for object tracking*](https://www.robots.ox.ac.uk/~luca/siamese-fc.html).
+# MOSiamFC - TensorFlow
 
-In particular, it is the improved version presented as baseline in [*End-to-end representation learning for Correlation Filter based tracking*](https://www.robots.ox.ac.uk/~luca/cfnet.html), which achieves state-of-the-art performance at high framerate. The other methods presented in the paper (similar performance, shallower network) haven't been ported yet.
+Forked version of SiamFC that supports Multi Object Tracking. Also this version is made to be compatible with Python 3.x .
 
-**Note1**: results should be similar (i.e. slightly better or worse) than our MatConvNet implementation. However, for direct comparison please refer to the precomputed results available in the project pages or to the original code, which you can find pinned in [my GitHub](https://github.com/bertinetto).
+**Note1**: Tested in Windows platform, using the [Anaconda Platform](https://www.anaconda.com/download/).
 
-**Note2**: at the moment this code only allows to use a pretrained net in forward mode.
+**Note2**: This fork also applied the [pull request](https://github.com/torrvision/siamfc-tf/pull/5) to use OpenCV to show the frame results.
+
+For more information, please refer to the original [Repository](https://github.com/torrvision/siamfc-tf).
 
 ## Settings things up with virtualenv
 1) Get virtualenv if you don't have it already
 `pip install virtualenv`
-1) Create new virtualenv with Python 2.7
-`virtualenv --python=/usr/bin/python2.7 ve-tracking`
+1) Create new virtualenv with Python 3.6
+`virtualenv --python=/usr/bin/python3.6 mo-siam`
 1) Activate the virtualenv
-`source ~/tracking-ve/bin/activate`
+`source ~/mo-siam/bin/activate`
 1) Clone the repository
-`git clone https://github.com/torrvision/siamfc-tf.git`
+`git clone https://github.com/lukaswals/siamfc-tf.git`
 1) `cd siamfc-tf`
 1) Install the required packages
 `sudo pip install -r requirements.txt`
@@ -23,21 +24,28 @@ In particular, it is the improved version presented as baseline in [*End-to-end 
 1) Download the [pretrained networks](https://bit.ly/cfnet_networks) in `pretrained` and unzip the archive (we will only use `baseline-conv5_e55.mat`)
 1) Download [video sequences](https://drive.google.com/file/d/0B7Awq_aAemXQSnhBVW5LNmNvUU0/view) in `data` and unzip the archive.
 
+## Bounding Box Input
+It's important to note that the provided Ground Truth for the video sequences are only for one object.
 
 ## Running the tracker
 1) Set `video` from `parameters.evaluation` to `"all"` or to a specific sequence (e.g. `"vot2016_ball1"`)
 1) See if you are happy with the default parameters in `parameters/hyperparameters.json`
+1) Enable Multi-Object tracking by setting `multi_object` from `parameters.evaluation` to 1 (default value)
 1) Optionally enable visualization in `parameters/run.json`
 1) Call the main script (within an active virtualenv session)
 `python run_tracker_evaluation.py`
 
-## Authors
+
+## Fork Authors
+* Lucas Wals
+
+## Original Authors
 
 * [**Luca Bertinetto**](https://www.robots.ox.ac.uk/~luca)
 * [**Jack Valmadre**](http://jack.valmadre.net)
 
 ## References
-If you find our work useful, please consider citing
+If you find their work useful, please consider citing
 
 ↓ [Original method] ↓
 ```
@@ -61,5 +69,4 @@ If you find our work useful, please consider citing
 
 ## License
 This code can be freely used for personal, academic, or educational purposes.
-Please contact us for commercial use.
 
